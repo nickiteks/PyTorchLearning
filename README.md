@@ -1,2 +1,2 @@
-# PyTorchLearning
+# Обучение PyTorch
  
