@@ -8,14 +8,14 @@ from torchvision.transforms import ToTensor
 import matplotlib.pyplot as plt
 
 
-x_train = torch.rand(500)
+x_train = torch.rand(5000)
 
-y_train = torch.zeros(500)
-for i in range(100):
+y_train = torch.zeros(5000)
+for i in range(1000):
     y_train[100+i]+=1
 #y_train = (y_train>0.5).float()
 
-x_valid = torch.rand(500)
+x_valid = torch.rand(5000)
 
 
 x_valid.unsqueeze_(1)
@@ -43,12 +43,12 @@ class optimalNet(nn.Module):
         return x
 
 
-optimalNet = optimalNet(10000)
+optimalNet = optimalNet(500)
 
 def predict(net,x,y):
     y_pred = net.forward(x)
     #y_pred = (y_pred>0.5).float()
-    plt.plot(x.detach().numpy(),y[:500].detach().numpy(),'.',c = 'g')
+    plt.plot(x.detach().numpy(),y.detach().numpy(),'.',c = 'g')
     plt.plot(x.detach().numpy(),y_pred.detach().numpy(),'.',c = 'r')
     plt.show()
 
