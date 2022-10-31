@@ -48,7 +48,7 @@ class optimalNet(nn.Module):
         return x
 
 
-optimalNet = optimalNet(1000)
+optimalNet = optimalNet(500)
 
 
 def predict(net, x, y):
