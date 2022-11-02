@@ -30,25 +30,20 @@ class optimalNet(nn.Module):
     def __init__(self, n_hid_n):
         super(optimalNet, self).__init__()
         self.fc1 = nn.Linear(1, n_hid_n)
-        self.act1 = nn.Sigmoid()
-        self.fc2 = nn.Linear(n_hid_n, n_hid_n)
-        self.act2 = nn.Sigmoid()
-        self.fc3 = nn.Linear(n_hid_n, n_hid_n)
+        self.act1 = nn.ReLU()
+        self.fc3 = nn.Linear(n_hid_n, 1)
         self.act3 = nn.Sigmoid()
-        self.fc4 = nn.Linear(n_hid_n, 1)
+        
 
     def forward(self, x):
         x = self.fc1(x)
         x = self.act1(x)
-        x = self.fc2(x)
-        x = self.act2(x)
         x = self.fc3(x)
         x = self.act3(x)
-        x = self.fc4(x)
         return x
 
 
-optimalNet = optimalNet(500)
+optimalNet = optimalNet(1000)
 
 
 def predict(net, x, y):
@@ -69,7 +64,7 @@ def loss(pred, true):
     return sq.mean()
 
 
-for e in range(500):
+for e in range(1000):
     optimiser.zero_grad()
 
     y_pred = optimalNet.forward(x_train)
@@ -81,3 +76,5 @@ for e in range(500):
     optimiser.step()
 
 predict(optimalNet, x_test, y_test)
+
+predict(optimalNet,x_train,y_train)
