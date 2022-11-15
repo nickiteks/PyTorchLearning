@@ -1,91 +1,84 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 from torch import nn
-
-# рандомим числа (1000 массивов по 3 числа от 0 до 1): степень принадлежности
-x_yes = np.random.rand(1000, 3)
-
-# больше 0,5 - 1: класс ВМФ
-y_yes = torch.zeros(1000)
-for i in range(100):
-    y_yes[300+i] = 1
-    y_yes[900+i] = 1
-#y_yes = (y_yes > 0.5).float()
-
-# для обучения (взяли 800)
-x_train = torch.FloatTensor(x_yes)[:800]
-y_train = y_yes[:800]
-# для тестирования (взяли 200)
-x_test = torch.FloatTensor(x_yes)[800:-1]
-y_test = y_yes[800:-1]
-
-# вид в виде столба
-x_train.unsqueeze_(1)
-y_train.unsqueeze_(1)
-
-x_test.unsqueeze_(1)
-y_test.unsqueeze_(1)
-
-x = torch.range(0,len(y_yes)-1)
-plt.plot(x, y_yes.reshape(-1).detach().numpy(), '.')
-plt.show()
-
-# применение линейной функции
-class optimalNet(nn.Module):
-    def __init__(self, n_hid_n):
-        super(optimalNet, self).__init__()
-        # 3 хар-ки приводятся в 1000 нейронов
-        self.fc1 = nn.Linear(3, n_hid_n)
-        self.act1 = nn.ReLU()
-        self.act2 = nn.Sigmoid()
-        self.fc3 = nn.Linear(n_hid_n, 1)
-        self.act3 = nn.ReLU()
-        
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.act1(x)
-        x = self.act2(x)
-        x = self.fc3(x)
-        x = self.act3(x)
+from torch.nn import functional as F
 
 
-        return x
+from sklearn.datasets import load_breast_cancer
+data = load_breast_cancer()
+x = data['data']
+y = data['target']
+print("shape of x: {}\nshape of y: {}".format(x.shape,y.shape))
 
-optimalNet = optimalNet(10)
+print(x)
+print(y)
 
-def predict(net, x, y):
-    y_pred = net.forward(x)
-    x = torch.range(0,len(y)-1)
-    plt.plot(x,y_pred.reshape(-1).detach().numpy(), '.', c = 'r')
-    plt.plot(x,y.reshape(-1).detach().numpy(), '.', c = 'g')
-    plt.show()
+
+sc = StandardScaler()
+x = sc.fit_transform(x)
+
+from torch.utils.data import Dataset, DataLoader
+class dataset(Dataset):
+  def __init__(self,x,y):
+    self.x = torch.tensor(x,dtype=torch.float32)
+    self.y = torch.tensor(y,dtype=torch.float32)
+    self.length = self.x.shape[0]
+ 
+  def __getitem__(self,idx):
+    return self.x[idx],self.y[idx]
+  def __len__(self):
+    return self.length
+trainset = dataset(x,y)
+#DataLoader
+trainloader = DataLoader(trainset,batch_size=64,shuffle=False)
 
 
 
-predict(optimalNet, x_test, y_test)
+class Net(nn.Module):
+  def __init__(self,input_shape):
+    super(Net,self).__init__()
+    self.fc1 = nn.Linear(input_shape,32)
+    self.fc2 = nn.Linear(32,64)
+    self.fc3 = nn.Linear(64,1)
+  def forward(self,x):
+    x = torch.relu(self.fc1(x))
+    x = torch.relu(self.fc2(x))
+    x = torch.sigmoid(self.fc3(x))
+    return x
 
-#вычисление ошибки
-def loss(pred, true):
-    error = (pred-true)**2
-    return error.mean()
 
-# шаг
-optimiser = torch.optim.Adam(optimalNet.parameters(), lr = 0.001)
 
-# с помощью градиентного спуска нейронная сеть обновляет веса в нейронах для лучшего определения класса корабля
-for i in range(5000):
-    optimiser.zero_grad()
+learning_rate = 0.01
+epochs = 5000
+# Model , Optimizer, Loss
+model = Net(input_shape=x.shape[1])
+optimizer = torch.optim.SGD(model.parameters(),lr=learning_rate)
+loss_fn = nn.BCELoss()
 
-    y_pred = optimalNet.forward(x_train)
-    loss_val = loss(y_pred, y_train)
 
-    print(loss_val)
+losses = []
+accur = []
+for i in range(epochs):
+  for j,(x_train,y_train) in enumerate(trainloader):
+    
+    #calculate output
+    output = model(x_train)
+ 
+    #calculate loss
+    loss = loss_fn(output,y_train.reshape(-1,1))
+ 
+    #accuracy
+    predicted = model(torch.tensor(x,dtype=torch.float32))
+    acc = (predicted.reshape(-1).detach().numpy().round() == y).mean()
+    #backprop
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
-    loss_val.backward()
-    optimiser.step()
+  if i%50 == 0:
+    losses.append(loss)
+    accur.append(acc)
+    print("epoch {}\tloss : {}\t accuracy : {}".format(i,loss,acc))
 
-predict(optimalNet, x_test, y_test)
-
-predict(optimalNet, x_train, y_train)
